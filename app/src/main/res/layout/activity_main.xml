@@ -16,7 +16,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center_horizontal"
-        android:layout_marginTop="105dp"
+        android:layout_marginTop="50dp"
         android:layout_below="@+id/text_msg"
         android:layout_centerHorizontal="true" />
 
@@ -34,8 +34,17 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Welcome!"
-        android:layout_alignParentTop="true"
+        android:textSize="30dp"
+        android:layout_below="@+id/profile_image"
         android:layout_centerHorizontal="true"
-        android:layout_marginTop="32dp" />
+         />
+
+    <ImageView
+        android:id="@+id/profile_image"
+        android:layout_width="150dp"
+        android:layout_height="150dp"
+        android:src="@mipmap/ic_launcher"
+        android:layout_centerHorizontal="true"
+        />
 
 </RelativeLayout>

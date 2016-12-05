@@ -1,15 +1,23 @@
 package com.example.a129356.qrcodelogin;
 
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.drawable.Drawable;
+import android.net.Uri;
+import android.provider.ContactsContract;
+import android.provider.Settings;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.facebook.AccessToken;
+import com.facebook.AccessTokenTracker;
 import com.facebook.CallbackManager;
 import com.facebook.FacebookCallback;
 import com.facebook.FacebookException;
@@ -28,31 +36,41 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.DefaultHttpClient;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URL;
+import java.util.Arrays;
 
 
 public class MainActivity extends AppCompatActivity {
     static final String ACTION_SCAN = "com.google.zxing.client.android.SCAN";
     private LoginButton loginButton;
+    private AccessTokenTracker accessTokenTracker;
     CallbackManager callbackManager;
     private Button scanButton;
     private TextView greetingMsg;
+    private ImageView profilePicture;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         FacebookSdk.sdkInitialize(getApplicationContext());
+        FacebookSdk.getApplicationSignature(getApplicationContext());
         setContentView(R.layout.activity_main);
 
         loginButton = (LoginButton) findViewById(R.id.login_button);
         scanButton = (Button) findViewById(R.id.scan_button);
         greetingMsg = (TextView) findViewById(R.id.text_msg);
+        profilePicture = (ImageView) findViewById(R.id.profile_image);
 
         AccessToken accessToken = AccessToken.getCurrentAccessToken();
         if(accessToken != null)
         {
             Log.v("###","Access Token: "+accessToken.getToken());
             scanButton.setVisibility(View.VISIBLE);
+            updateUI();
         }
         else
         {
@@ -62,7 +80,9 @@ public class MainActivity extends AppCompatActivity {
 
         callbackManager = CallbackManager.Factory.create();
 
-        loginButton.setReadPermissions("email");
+        //loginButton.setReadPermissions("email");
+
+        loginButton.setReadPermissions(Arrays.asList("public_profile","email"));
         // If using in a fragment
         //loginButton.setFragment(this);
         // Other app specific specialization
@@ -74,7 +94,7 @@ public class MainActivity extends AppCompatActivity {
                 // App code
                 Log.v("###", "Login Success");
                 showText("Login Success");
-
+                accessTokenTracker.startTracking();
                 scanButton.setVisibility(View.VISIBLE);
                 updateUI();
             }
@@ -102,7 +122,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-
         final IntentIntegrator scanIntegrator = new IntentIntegrator(this);
 
         scanButton.setOnClickListener(new View.OnClickListener() {
@@ -118,8 +137,20 @@ public class MainActivity extends AppCompatActivity {
 
             }
         });
-    }
 
+
+
+        accessTokenTracker = new AccessTokenTracker() {
+            @Override
+            protected void onCurrentAccessTokenChanged(AccessToken oldAccessToken, AccessToken currentAccessToken) {
+                if (currentAccessToken == null) {
+                    //write your code here what to do when user logout
+                    profilePicture.setImageResource(R.mipmap.ic_launcher);
+                    greetingMsg.setText("Welcome");
+                }
+            }
+        };
+    }
 
 /*    @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -137,11 +168,11 @@ public class MainActivity extends AppCompatActivity {
 
             IntentResult scanningResult = IntentIntegrator.parseActivityResult(requestCode, resultCode, data);
             if (scanningResult != null) {
-                String qrStr = scanningResult.getContents();
+                final String qrStr = scanningResult.getContents();
                 String scanFormat = scanningResult.getFormatName();
 
 
-                AccessToken accessToken = AccessToken.getCurrentAccessToken();
+                final AccessToken accessToken = AccessToken.getCurrentAccessToken();
 
                 if(accessToken == null)
                 {
@@ -150,7 +181,14 @@ public class MainActivity extends AppCompatActivity {
                 }
                 else
                 {
-                    sendToServer(accessToken.getToken(), qrStr);
+                    new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            sendToServer(accessToken.getToken(), qrStr);
+                            Log.v("network","in send to server thread");
+                        }
+                    }).start();
+
                 }
                 super.onActivityResult(requestCode, resultCode, data);
 
@@ -181,7 +219,7 @@ public class MainActivity extends AppCompatActivity {
 
         //HttpPost httpPost = new HttpPost("http://nodejs-whatsappauth.rhcloud.com/auth");
 
-        HttpPost httpPost = new HttpPost("http://10.122.40.32:3000");
+        HttpPost httpPost = new HttpPost("http://10.122.40.7:3000/auth");
 
         String jsonStr="{\"uuid\":\""+qrStr+"\",\"access_token\":\""+accessToken+"\"}";
 
@@ -192,27 +230,30 @@ public class MainActivity extends AppCompatActivity {
             httpPost.setEntity(se);
             HttpResponse response = httpClient.execute(httpPost);
 
-            Log.v("###","Respnse:"+response.toString());
-            showText("Successfully posted token");
+            Log.v("network","Respnse:"+response.toString());
+            Log.v("network","Ruccessfully posted token");
+            //showText("Successfully posted token");
 
         }
         catch (ClientProtocolException e) {
             // Log exception
-            showText("Unablet to Post Token");
-
+            //showText("Unablet to Post Token");
+            Log.v("network",e.toString());
             e.printStackTrace();
         }
         catch (UnsupportedEncodingException e)
         {
 
-            showText("Unablet to Post Token");
+            //showText("Unablet to Post Token");
             e.printStackTrace();
+            Log.v("network",e.toString());
         }
         catch (IOException e) {
             // Log exception
-            showText("Unablet to Post Token");
+            //showText("Unablet to Post Token");
 
             e.printStackTrace();
+            Log.v("network",e.toString());
         }
 
     }
@@ -230,8 +271,41 @@ public class MainActivity extends AppCompatActivity {
         Profile profile = Profile.getCurrentProfile();
         if (enableButtons && profile != null) {
             greetingMsg.setText(profile.getFirstName());
+            //"https://graph.facebook.com/me/picture?access_token=" + enableButtons +"/"
+            final Uri photo_url_str = profile.getProfilePictureUri(150,150);
+
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    URL myUrl = null;
+                    try {
+                        myUrl = new URL(photo_url_str.toString());
+                    } catch (MalformedURLException e) {
+                        e.printStackTrace();
+                    }
+                    InputStream inputStream = null;
+                    try {
+                        inputStream = (InputStream)myUrl.getContent();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    final Drawable drawable = Drawable.createFromStream(inputStream, null);
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            profilePicture.setImageDrawable(drawable);
+                        }
+                    });
+
+
+                }
+            }).start();
+
+
+            //profilePicture.setImageURI(photo_url_str);
+            //profilePicture.setImageURI();
         } else {
-            greetingMsg.setText(null);
+            greetingMsg.setText("");
         }
     }
 }
