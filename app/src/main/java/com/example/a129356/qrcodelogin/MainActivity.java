@@ -23,6 +23,7 @@ import com.facebook.FacebookCallback;
 import com.facebook.FacebookException;
 import com.facebook.FacebookSdk;
 import com.facebook.Profile;
+import com.facebook.ProfileTracker;
 import com.facebook.login.LoginResult;
 import com.facebook.login.widget.LoginButton;
 import com.google.zxing.integration.android.IntentIntegrator;
@@ -52,6 +53,7 @@ public class MainActivity extends AppCompatActivity {
     private Button scanButton;
     private TextView greetingMsg;
     private ImageView profilePicture;
+    private ProfileTracker profileTracker;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -96,7 +98,7 @@ public class MainActivity extends AppCompatActivity {
                 showText("Login Success");
                 accessTokenTracker.startTracking();
                 scanButton.setVisibility(View.VISIBLE);
-                updateUI();
+                //updateUI();
             }
 
             @Override
@@ -121,6 +123,18 @@ public class MainActivity extends AppCompatActivity {
                 updateUI();
             }
         });
+
+        profileTracker = new ProfileTracker() {
+            @Override
+            protected void onCurrentProfileChanged(Profile oldProfile, Profile currentProfile) {
+                if(oldProfile != null && currentProfile == null){
+                    scanButton.setVisibility(View.INVISIBLE);
+                }
+                updateUI();
+            }
+        };
+
+
 
         final IntentIntegrator scanIntegrator = new IntentIntegrator(this);
 
@@ -219,7 +233,7 @@ public class MainActivity extends AppCompatActivity {
 
         //HttpPost httpPost = new HttpPost("http://nodejs-whatsappauth.rhcloud.com/auth");
 
-        HttpPost httpPost = new HttpPost("http://10.122.40.7:3000/auth");
+        HttpPost httpPost = new HttpPost("http://10.122.40.185:3000/auth");
 
         String jsonStr="{\"uuid\":\""+qrStr+"\",\"access_token\":\""+accessToken+"\"}";
 
@@ -305,7 +319,23 @@ public class MainActivity extends AppCompatActivity {
             //profilePicture.setImageURI(photo_url_str);
             //profilePicture.setImageURI();
         } else {
-            greetingMsg.setText("");
+            //greetingMsg.setText("");
+            profilePicture.setImageResource(R.mipmap.ic_launcher);
+            greetingMsg.setText("Welcome");
         }
+    }
+
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+       // updateUI();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        profileTracker.stopTracking();
     }
 }
