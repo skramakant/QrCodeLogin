@@ -47,4 +47,12 @@
         android:layout_centerHorizontal="true"
         />
 
+    <EditText
+        android:id="@+id/server_ip"
+        android:layout_width="350dp"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/scan_button"
+        android:layout_marginTop="50dp"
+        android:layout_centerHorizontal="true"/>
+
 </RelativeLayout>

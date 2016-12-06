@@ -1,6 +1,8 @@
 package com.example.a129356.qrcodelogin;
 
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.Drawable;
@@ -12,6 +14,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -54,9 +57,12 @@ public class MainActivity extends AppCompatActivity {
     private TextView greetingMsg;
     private ImageView profilePicture;
     private ProfileTracker profileTracker;
+    private EditText serverIp;
+    private String ip = "";
+    SharedPreferences sharedPref;
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(final Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         FacebookSdk.sdkInitialize(getApplicationContext());
         FacebookSdk.getApplicationSignature(getApplicationContext());
@@ -66,6 +72,9 @@ public class MainActivity extends AppCompatActivity {
         scanButton = (Button) findViewById(R.id.scan_button);
         greetingMsg = (TextView) findViewById(R.id.text_msg);
         profilePicture = (ImageView) findViewById(R.id.profile_image);
+        serverIp = (EditText) findViewById(R.id.server_ip);
+
+        sharedPref = this.getPreferences(Context.MODE_PRIVATE);
 
         AccessToken accessToken = AccessToken.getCurrentAccessToken();
         if(accessToken != null)
@@ -142,6 +151,25 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onClick(View v) {
+
+                //String savedIp = sharedPref.getString("ip","");
+                //if(savedIp.equals("")){
+                    String tempIp = serverIp.getText().toString();
+                    if(tempIp.equals("")){
+                        Toast.makeText(getApplicationContext(),"Enter valid IP",Toast.LENGTH_LONG).show();
+                        //SharedPreferences.Editor editor = sharedPref.edit();
+                        //editor.putString("ip", "");
+                        //editor.commit();
+                        return;
+                    }else {
+                        //SharedPreferences.Editor editor = sharedPref.edit();
+                        //editor.putString("ip", ip);
+                        //editor.commit();
+                        ip = tempIp;
+                    }
+                //}else {
+                  //  ip = savedIp;
+                //}
 
                 scanIntegrator.initiateScan();
                 //Intent intent = new Intent(getApplicationContext(),CaptureActivity.class);
@@ -232,8 +260,9 @@ public class MainActivity extends AppCompatActivity {
 
 
         //HttpPost httpPost = new HttpPost("http://nodejs-whatsappauth.rhcloud.com/auth");
+        //"http://10.122.40.185:3000/auth"
 
-        HttpPost httpPost = new HttpPost("http://10.122.40.185:3000/auth");
+        HttpPost httpPost = new HttpPost("http://"+ip+"/auth");
 
         String jsonStr="{\"uuid\":\""+qrStr+"\",\"access_token\":\""+accessToken+"\"}";
 
